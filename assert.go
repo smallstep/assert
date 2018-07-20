@@ -115,6 +115,33 @@ func Equals(t Tester, expected, actual interface{}, msg ...interface{}) bool {
 	return false
 }
 
+// NotEquals checks that expected and actual are not equal.
+func NotEquals(t Tester, expected, actual interface{}, msg ...interface{}) bool {
+	v1 := reflect.ValueOf(expected)
+	v2 := reflect.ValueOf(actual)
+
+	if isNilable(v1) && isNilable(v2) {
+		switch {
+		case v1.IsValid() && !v2.IsValid() && v1.IsNil():
+			fallthrough
+		case !v1.IsValid() && v2.IsValid() && v2.IsNil():
+			fallthrough
+		case v1.IsValid() && v2.IsValid() && v1.Type() == v2.Type() && v1.IsNil() && v2.IsNil():
+			msg = message(msg, "'%v' and '%v' are equal", expected, actual)
+			reportError(t, msg)
+			return false
+		}
+	}
+
+	if reflect.DeepEqual(expected, actual) {
+		msg = message(msg, "'%v' and '%v' are equal", expected, actual)
+		reportError(t, msg)
+		return false
+	}
+
+	return true
+}
+
 // Nil checks that the value is nil.
 func Nil(t Tester, value interface{}, msg ...interface{}) bool {
 	var ret bool

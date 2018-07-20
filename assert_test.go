@@ -164,6 +164,67 @@ func TestEquals(t *testing.T) {
 	}
 }
 
+func TestNotEquals(t *testing.T) {
+	type myint int
+	var nilPtr *int
+	var myintPtr *myint
+	var nilInterface interface{}
+	var notNilInterface interface{}
+
+	val, myval := 123, myint(123)
+	notNilPtr := &val
+	notNilInterface = val
+	myintPtr = &myval
+
+	type aType struct{}
+	var nilType *aType
+	notNilType := new(aType)
+
+	tests := []struct {
+		a, b interface{}
+		res  bool
+	}{
+		{nil, nil, false},
+		{0, 0, false},
+		{0, nil, true},
+		{nilPtr, nil, false},
+		{notNilPtr, nil, true},
+		{nilInterface, nil, false},
+		{notNilInterface, nil, true},
+		{nilPtr, nilPtr, false},
+		{notNilPtr, notNilPtr, false},
+		{nilInterface, nilInterface, false},
+		{notNilInterface, notNilInterface, false},
+		{nilPtr, nilInterface, false},
+		{myint(123), myint(123), false},
+		{nilType, nil, false},
+		{nilType, nilType, false},
+		{notNilType, nil, true},
+		{notNilType, notNilType, false},
+		{nil, nilPtr, false},
+		{nil, nilInterface, false},
+		{nil, nilType, false},
+		{nilType, interface{}(nilType), false},
+		{interface{}(notNilType), interface{}(notNilType), false},
+		{interface{}(nilType), interface{}(nilType), false},
+		{notNilType, interface{}(notNilType), false},
+		{interface{}(notNilType), interface{}(notNilType), false},
+		// not same type
+		{123, myint(123), true},
+		{notNilPtr, notNilInterface, true},
+		{notNilPtr, myintPtr, true},
+		{*notNilPtr, *myintPtr, true},
+	}
+
+	for i, tc := range tests {
+		if i == 3 || true {
+			if NotEquals(tt(), tc.a, tc.b) != tc.res {
+				t.Errorf("test %d with %v and %v failed", i, tc.a, tc.b)
+			}
+		}
+	}
+}
+
 func TestNil(t *testing.T) {
 	var nilPtr *int
 	var nilInterface interface{}
