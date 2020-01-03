@@ -2,9 +2,7 @@ package assert
 
 import (
 	"fmt"
-	"path"
 	"reflect"
-	"runtime"
 	"strings"
 )
 
@@ -13,12 +11,13 @@ import (
 type Tester interface {
 	Errorf(format string, args ...interface{})
 	Fatalf(format string, args ...interface{})
+	Helper()
 }
 
 func reportError(t Tester, msg []interface{}) {
-	_, file, line, _ := runtime.Caller(2)
 	args := append([]interface{}{}, msg...)
-	t.Errorf("\r\t%s:%d:\t%s", path.Base(file), line, fmt.Sprintln(args...))
+	t.Helper()
+	t.Errorf(fmt.Sprintln(args...))
 }
 
 func message(msg []interface{}, format string, a ...interface{}) []interface{} {
@@ -32,8 +31,8 @@ func message(msg []interface{}, format string, a ...interface{}) []interface{} {
 // True checks that a condition is true.
 func True(t Tester, condition bool, msg ...interface{}) bool {
 	if !condition {
-		msg = message(msg, "assert condition is not true")
-		reportError(t, msg)
+		t.Helper()
+		reportError(t, message(msg, "assert condition is not true"))
 		return false
 	}
 	return true
@@ -42,8 +41,8 @@ func True(t Tester, condition bool, msg ...interface{}) bool {
 // False checks that a condition is false.
 func False(t Tester, condition bool, msg ...interface{}) bool {
 	if condition {
-		msg = message(msg, "assert condition is not false")
-		reportError(t, msg)
+		t.Helper()
+		reportError(t, message(msg, "assert condition is not false"))
 		return false
 	}
 	return true
@@ -53,9 +52,10 @@ func False(t Tester, condition bool, msg ...interface{}) bool {
 // it's execution.
 func Fatal(t Tester, condition bool, msg ...interface{}) {
 	if !condition {
-		_, file, line, _ := runtime.Caller(1)
+		msg = message(msg, "assert condition is not true")
 		args := append([]interface{}{}, msg...)
-		t.Fatalf("\r\t%s:%d:\t%s", path.Base(file), line, fmt.Sprintln(args...))
+		t.Helper()
+		t.Fatalf(fmt.Sprintln(args...))
 	}
 }
 
@@ -64,17 +64,17 @@ func Fatal(t Tester, condition bool, msg ...interface{}) {
 func FatalError(t Tester, err error, msg ...interface{}) {
 	if err != nil {
 		msg = message(msg, "error '%s' not expected", err)
-		_, file, line, _ := runtime.Caller(1)
 		args := append([]interface{}{}, msg...)
-		t.Fatalf("\r\t%s:%d:\t%s", path.Base(file), line, fmt.Sprintln(args...))
+		t.Helper()
+		t.Fatalf(fmt.Sprintln(args...))
 	}
 }
 
 // Error checks if err is not nil.
 func Error(t Tester, err error, msg ...interface{}) bool {
 	if err == nil {
-		msg = message(msg, "error expected but not found")
-		reportError(t, msg)
+		t.Helper()
+		reportError(t, message(msg, "error expected but not found"))
 		return false
 	}
 	return true
@@ -83,8 +83,8 @@ func Error(t Tester, err error, msg ...interface{}) bool {
 // NoError checks if err nil.
 func NoError(t Tester, err error, msg ...interface{}) bool {
 	if err != nil {
-		msg = message(msg, "error '%s' not expected", err)
-		reportError(t, msg)
+		t.Helper()
+		reportError(t, message(msg, "error '%s' not expected", err))
 		return false
 	}
 	return true
@@ -110,8 +110,8 @@ func Equals(t Tester, expected, actual interface{}, msg ...interface{}) bool {
 		}
 	}
 
-	msg = message(msg, "'%v' and '%v' are not equal", expected, actual)
-	reportError(t, msg)
+	t.Helper()
+	reportError(t, message(msg, "'%v' and '%v' are not equal", expected, actual))
 	return false
 }
 
@@ -127,15 +127,15 @@ func NotEquals(t Tester, expected, actual interface{}, msg ...interface{}) bool 
 		case !v1.IsValid() && v2.IsValid() && v2.IsNil():
 			fallthrough
 		case v1.IsValid() && v2.IsValid() && v1.Type() == v2.Type() && v1.IsNil() && v2.IsNil():
-			msg = message(msg, "'%v' and '%v' are equal", expected, actual)
-			reportError(t, msg)
+			t.Helper()
+			reportError(t, message(msg, "'%v' and '%v' are equal", expected, actual))
 			return false
 		}
 	}
 
 	if reflect.DeepEqual(expected, actual) {
-		msg = message(msg, "'%v' and '%v' are equal", expected, actual)
-		reportError(t, msg)
+		t.Helper()
+		reportError(t, message(msg, "'%v' and '%v' are equal", expected, actual))
 		return false
 	}
 
@@ -151,8 +151,8 @@ func Nil(t Tester, value interface{}, msg ...interface{}) bool {
 	}
 
 	if !ret {
-		msg = message(msg, "nil expected and found '%v'", value)
-		reportError(t, msg)
+		t.Helper()
+		reportError(t, message(msg, "nil expected and found '%v'", value))
 		return false
 	}
 
@@ -164,8 +164,8 @@ func NotNil(t Tester, value interface{}, msg ...interface{}) bool {
 	v := reflect.ValueOf(value)
 	if isNilable(v) {
 		if !v.IsValid() || v.IsNil() {
-			msg = message(msg, "not nil expected and found '%v'", value)
-			reportError(t, msg)
+			t.Helper()
+			reportError(t, message(msg, "not nil expected and found '%v'", value))
 			return false
 		}
 	}
@@ -179,25 +179,26 @@ func Len(t Tester, expected int, value interface{}, msg ...interface{}) bool {
 	switch v.Kind() {
 	case reflect.Array, reflect.Chan, reflect.Map, reflect.Slice, reflect.String:
 		if v.Len() != expected {
-			msg = message(msg, "len '%d' expected and found '%d'", expected, v.Len())
-			reportError(t, msg)
+			t.Helper()
+			reportError(t, message(msg, "len '%d' expected and found '%d'", expected, v.Len()))
 			return false
 		}
 		return true
 	default:
-		msg = message(msg, "cannot apply built-in function len to '%s' (%v)", v.Kind(), value)
-		reportError(t, msg)
+		t.Helper()
+		reportError(t, message(msg, "cannot apply built-in function len to '%s' (%v)", v.Kind(), value))
 		return false
 	}
 }
 
 // Panic checks that the passed function panics.
 func Panic(t Tester, f func(), msg ...interface{}) (ret bool) {
+	t.Helper()
 	defer func() {
 		ret = true
 		if r := recover(); r == nil {
-			msg = message(msg, "function did not panic")
-			reportError(t, msg)
+			t.Helper()
+			reportError(t, message(msg, "function did not panic"))
 			ret = false
 		}
 	}()
@@ -212,8 +213,8 @@ func Type(t Tester, expected, value interface{}, msg ...interface{}) bool {
 	if te == tv {
 		return true
 	}
-	msg = message(msg, "type '%T' expected and found '%T'", expected, value)
-	reportError(t, msg)
+	t.Helper()
+	reportError(t, message(msg, "type '%T' expected and found '%T'", expected, value))
 	return false
 }
 
@@ -234,7 +235,7 @@ func HasPrefix(t Tester, s, p string, msg ...interface{}) bool {
 	if strings.HasPrefix(s, p) {
 		return true
 	}
-	msg = message(msg, "'%s' is not a prefix of '%s'", p, s)
-	reportError(t, msg)
+	t.Helper()
+	reportError(t, message(msg, "'%s' is not a prefix of '%s'", p, s))
 	return false
 }

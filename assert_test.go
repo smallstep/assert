@@ -28,6 +28,8 @@ func (t *tester) Fatalf(format string, args ...interface{}) {
 	t.args = args
 }
 
+func (t *tester) Helper() {}
+
 func TestMessage(t *testing.T) {
 	args := []interface{}{"%s", "a message"}
 	if !reflect.DeepEqual(args, message(args, "default message")) {
@@ -159,6 +161,7 @@ func TestEquals(t *testing.T) {
 
 	for i, tc := range tests {
 		if Equals(tt(), tc.a, tc.b) != tc.res {
+			_ = i
 			t.Errorf("test %d with %v and %v failed", i, tc.a, tc.b)
 		}
 	}
