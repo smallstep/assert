@@ -239,3 +239,13 @@ func HasPrefix(t Tester, s, p string, msg ...interface{}) bool {
 	reportError(t, message(msg, "'%s' is not a prefix of '%s'", p, s))
 	return false
 }
+
+// HasSuffix checks that the string ends with the given suffix.
+func HasSuffix(t Tester, s, suffix string, msg ...interface{}) bool {
+	if strings.HasSuffix(s, suffix) {
+		return true
+	}
+	t.Helper()
+	reportError(t, message(msg, "'%s' is not a suffix of '%s'", suffix, s))
+	return false
+}
